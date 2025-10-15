@@ -6,12 +6,29 @@ import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store/store.js';
 
+import Home from './Pages/Home.jsx';
+import Workspace from './Pages/Workspace.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
+
 const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
     children: [
-      // Routes
+      {
+        path: "",
+        element: <Home />,
+      },
+      {
+        path: "/",
+        element: <ProtectedRoute />,
+        children: [
+          {
+            path: "workspace",
+            element: <Workspace />,
+          }
+        ]
+      }
     ],
   },
 ]);

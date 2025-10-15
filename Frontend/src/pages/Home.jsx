@@ -1,5 +1,5 @@
 import React from "react";
-//import { motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import { useDispatch } from "react-redux";

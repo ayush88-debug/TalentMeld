@@ -10,6 +10,7 @@ import Home from './Pages/Home.jsx';
 import Workspace from './Pages/Workspace.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Report from './Pages/Report.jsx';
+import Dashboard from './Pages/Dashboard.jsx';
 
 const router = createBrowserRouter([
   {
@@ -31,7 +32,11 @@ const router = createBrowserRouter([
           {
             path: "report/:reportId",
             element: <Report />,
-          }
+          },
+          {
+            path: "dashboard", 
+            element: <Dashboard />,
+          },
         ]
       }
     ],

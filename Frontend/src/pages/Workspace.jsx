@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import axios from "axios";
+import api from '../axios/config'
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 
@@ -32,7 +32,7 @@ const Workspace = () => {
 
       try {
         const idToken = await auth.currentUser.getIdToken(true);
-        const response = await axios.post("/api/v1/users/parse-resume", formData, {
+        const response = await api.post("/users/parse-resume", formData, {
           headers: {
             "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${idToken}`,
@@ -65,7 +65,7 @@ const Workspace = () => {
     setError("");
     try {
       const idToken = await auth.currentUser.getIdToken(true);
-      const response = await axios.post("/api/v1/users/analyze", {
+      const response = await api.post("/users/analyze", {
         resumeText,
         jobDescription,
       }, {

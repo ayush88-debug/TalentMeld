@@ -3,35 +3,34 @@ import React from "react";
 import { motion } from "framer-motion";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { login } from "../store/authSlice";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { Button } from "@/components/ui/button";
+import api from '../axios/config';
 
 const Home = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const authStatus = useSelector((state) => state.auth.status);
 
   const handleGoogleLogin = async () => {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      const idToken = await user.getIdToken();
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        const user = result.user;
+        const idToken = await user.getIdToken();
 
-      const { data } = await axios.post("/api/v1/users/google-login", {
-        idToken,
-      });
+        const { data } = await api.post("/users/set-token", { idToken });
 
-      if (data.success) {
-        dispatch(login(data.data));
-        navigate("/workspace"); // Navigate to the workspace after login
-      } else {
-        console.error("Backend login failed:", data.message);
+        if (data.success) {
+          dispatch(login(data.data));
+          navigate("/workspace");
+        } else {
+          console.error("Backend login failed:", data.message);
+        }
+      } catch (error) {
+        console.error("Google sign-in error", error);
       }
-    } catch (error) {
-      console.error("Google sign-in error", error);
-    }
   };
 
   return (
@@ -59,9 +58,15 @@ const Home = () => {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, delay: 0.4 }}
       >
-        <Button onClick={handleGoogleLogin} size="lg">
-          Login with Google to Get Started
-        </Button>
+        {authStatus ? (
+          <Button onClick={() => navigate('/workspace')} size="lg">
+            Go to Workspace
+          </Button>
+        ) : (
+          <Button onClick={handleGoogleLogin} size="lg">
+            Login with Google to Get Started
+          </Button>
+        )}
       </motion.div>
     </div>
   );

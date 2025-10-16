@@ -7,36 +7,49 @@ import { AnalysisReport } from "../models/analysis.model.js";
 import {PDFParse } from "pdf-parse";
 import * as mammoth from "mammoth";
 import fs from "fs";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { PromptTemplate } from "@langchain/core/prompts";
+import { analysisParser } from "../langchain/parsers.js";
+import { analysisPromptTemplate } from "../langchain/prompts.js";
 
-const registerOrLoginUser = asyncHandler(async (req, res) => {
-  const { idToken } = req.body;
+const setAuthToken = asyncHandler(async (req, res) => {
+    const { idToken } = req.body;
+    if (!idToken) throw new ApiError(400, "ID token is required");
 
-  if (!idToken) {
-    throw new ApiError(400, "ID token is required");
-  }
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    if (!decodedToken) throw new ApiError(401, "Invalid Firebase token");
 
-  const decodedToken = await admin.auth().verifyIdToken(idToken);
-  if (!decodedToken) {
-    throw new ApiError(401, "Invalid Firebase token");
-  }
+    const { uid, email, name, picture } = decodedToken;
+    let user = await User.findOne({ firebaseId: uid });
 
-  const { uid, email, name, picture } = decodedToken;
+    if (!user) {
+        user = await User.create({
+            firebaseId: uid,
+            email,
+            name,
+            avatar: picture || "",
+        });
+    }
 
-  let user = await User.findOne({ firebaseId: uid });
+    const options = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    };
 
-  if (!user) {
-    user = await User.create({
-      firebaseId: uid,
-      email: email,
-      name: name,
-      avatar: picture || "",
-    });
-  }
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, user, "User logged in successfully"));
+    return res
+        .status(200)
+        .cookie("idToken", idToken, options)
+        .json(new ApiResponse(200, user, "User logged in and token set successfully"));
 });
+
+const clearAuthToken = asyncHandler(async (req, res) => {
+    return res
+        .status(200)
+        .clearCookie("idToken")
+        .json(new ApiResponse(200, {}, "User logged out successfully"));
+});
+
+
 
 const parseResume = asyncHandler(async (req, res) => {
   const resumeLocalPath = req.file?.path;
@@ -93,78 +106,54 @@ const analyzeContent = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Resume text and job description are required.");
   }
 
-  const mockAnalysis = {
-    jobTitle: "Software Engineer",
-    companyName: "Tech Solutions Inc.",
-    matchScore: 78,
-    keywordAnalysis: {
-      found: ["JavaScript", "React", "Node.js", "API"],
-      missing: ["GraphQL", "TypeScript", "CI/CD"],
+  const llm = new ChatGoogleGenerativeAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    modelName: "gemini-pro",
+    temperature: 0.3,
+  });
+  const prompt = new PromptTemplate({
+    template: analysisPromptTemplate,
+    inputVariables: ["resumeText", "jobDescription"],
+    partialVariables: {
+      format_instructions: analysisParser.getFormatInstructions(),
     },
-    
-    resumeSuggestions: [
-      {
-        section: "Header & Contact Info",
-        suggestions: [
-          {
-            insight: "Include a link to your live portfolio or GitHub profile to showcase your work.",
-            original: "New York, NY | (123) 456-7890",
-            suggestion: "New York, NY | (123) 456-7890 | portfolio.com | github.com/username",
-          },
-        ],
-      },
-      {
-        section: "Skills Summary",
-        suggestions: [
-          {
-            insight: "The job description emphasizes 'TypeScript'. Add it to your skills list to pass ATS scans.",
-            original: "JavaScript, React, Node.js, Express, MongoDB",
-            suggestion: "TypeScript, JavaScript, React, Node.js, Express, MongoDB",
-          },
-        ],
-      },
-      {
-        section: "Work Experience",
-        suggestions: [
-          {
-            insight: "Quantify your achievements using the STAR method to demonstrate impact.",
-            original: "Responsible for building the backend API for Project X.",
-            suggestion: "Engineered a RESTful API for Project X, which improved data retrieval times by 30% for over 10,000 daily users.",
-          },
-           {
-            insight: "Use stronger action verbs to describe your responsibilities.",
-            original: "Worked on the frontend user interface.",
-            suggestion: "Developed and maintained a responsive user interface using React, leading to a 15% increase in user engagement.",
-          },
-        ],
-      },
-    ],
-    
-    generatedCoverLetter: {
-        Professional: `Dear Hiring Manager,\n\nI am writing to express my keen interest in the Software Engineer position at Tech Solutions Inc. My experience with JavaScript, React, and Node.js aligns well with the requirements of this role.\n\nI am confident that my technical skills and proactive approach would make me a valuable asset to your team.\n\nThank you for your consideration.\n\nSincerely,\n[Your Name]`,
-        Enthusiastic: `Dear Hiring Team,\n\nI was thrilled to see the opening for a Software Engineer at Tech Solutions Inc.! I am incredibly passionate about building innovative solutions and my background in creating dynamic applications with React and Node.js feels like a perfect match for this opportunity.\n\nI am very excited about the possibility of contributing to your team's success.\n\nBest regards,\n[Your Name]`,
-        Concise: `Dear Hiring Manager,\n\nI am applying for the Software Engineer position. My skills in JavaScript, React, and Node.js, combined with my experience in backend API development, meet your core requirements.\n\nI am confident I can contribute effectively to your team. I look forward to hearing from you.\n\nRegards,\n[Your Name]`,
-    },
-  };
-  // --- END OF MOCKED AI RESPONSE ---
+  });
+
+  const chain = prompt.pipe(llm).pipe(analysisParser);
+
+  let analysisResult;
+  try {
+    analysisResult = await chain.invoke({
+      resumeText: resumeText,
+      jobDescription: jobDescription,
+    });
+  } catch (error) {
+    console.error("LangChain analysis failed:", error);
+    throw new ApiError(500, "The AI failed to generate a valid analysis. This can happen during high traffic. Please try again in a moment.");
+  }
 
   const report = await AnalysisReport.create({
     userId,
-    jobTitle: mockAnalysis.jobTitle,
-    companyName: mockAnalysis.companyName,
-    matchScore: mockAnalysis.matchScore,
-    keywordAnalysis: mockAnalysis.keywordAnalysis,
-    resumeSuggestions: mockAnalysis.resumeSuggestions,
-    generatedCoverLetter: mockAnalysis.generatedCoverLetter.Professional, // Save a default
+    jobTitle: analysisResult.jobTitle,
+    companyName: analysisResult.companyName,
+    matchScore: analysisResult.matchScore,
+    keywordAnalysis: analysisResult.keywordAnalysis,
+    resumeSuggestions: analysisResult.resumeSuggestions,
+    generatedCoverLetter: analysisResult.generatedCoverLetter.Professional,
   });
 
   if (!report) {
     throw new ApiError(500, "Failed to save the analysis report.");
   }
 
+  const responseData = {
+    ...report.toObject(),
+    generatedCoverLetter: analysisResult.generatedCoverLetter,
+  };
+
   return res
     .status(200)
-    .json(new ApiResponse(200, report, "Analysis completed successfully."));
+    .json(new ApiResponse(200, responseData, "Analysis completed successfully."));
 });
 
 const getReportById = asyncHandler(async (req, res) => {
@@ -190,4 +179,21 @@ const getReportById = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, report, "Report fetched successfully."));
 });
 
-export { registerOrLoginUser, parseResume, analyzeContent, getReportById };
+
+const getUserReports = asyncHandler(async (req, res) => {
+  const userId = req.user.uid; 
+
+  const reports = await AnalysisReport.find({ userId }).sort({ createdAt: -1 });
+
+  if (!reports) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, [], "No reports found for this user."));
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, reports, "User reports fetched successfully."));
+});
+
+export { setAuthToken, clearAuthToken, parseResume, analyzeContent, getReportById, getUserReports };

@@ -4,27 +4,25 @@ import { useDispatch } from 'react-redux';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import { login, logout } from './store/authSlice';
-import axios from 'axios';
+import api from './axios/config'; // Make sure you have this file
+import Header from './components/Header'; 
+import Footer from './components/Footer';
 
 function App() {
   const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // onAuthStateChanged returns an unsubscribe function that we can use for cleanup
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // User is signed in.
         try {
           const idToken = await user.getIdToken();
           
-          // Verify the token with our backend and get user data from MongoDB
-          const { data } = await axios.post("/api/v1/users/google-login", { idToken });
-          
+          const { data } = await api.post("/users/set-token", { idToken });
+
           if (data.success) {
             dispatch(login(data.data));
           } else {
-            // If backend verification fails, log them out of the app state
             dispatch(logout());
           }
         } catch (error) {
@@ -32,14 +30,10 @@ function App() {
           dispatch(logout());
         }
       } else {
-        // User is signed out.
         dispatch(logout());
       }
-      // Finished checking auth state, we can now show the app
       setLoading(false);
     });
-
-    // Cleanup subscription on component unmount
     return () => unsubscribe();
   }, [dispatch]);
 
@@ -52,13 +46,13 @@ function App() {
   }
 
   return (
-    <>
-      {/* <Header /> */}
-      <main>
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-grow">
         <Outlet />
       </main>
-      {/* <Footer /> */}
-    </>
+      <Footer />
+    </div>
   );
 }
 

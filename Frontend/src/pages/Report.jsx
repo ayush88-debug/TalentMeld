@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
+import api from '../axios/config'
 import { auth } from "../firebase";
 import { Copy, Check, Info } from "lucide-react";
 // eslint-disable-next-line no-unused-vars
@@ -28,7 +28,7 @@ const Report = () => {
       if (!reportId) return;
       try {
         const idToken = await auth.currentUser.getIdToken();
-        const { data } = await axios.get(`/api/v1/users/report/${reportId}`, {
+        const { data } = await api.get(`/users/report/${reportId}`, {
           headers: { Authorization: `Bearer ${idToken}` },
         });
 

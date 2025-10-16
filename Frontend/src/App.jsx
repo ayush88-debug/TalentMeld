@@ -17,9 +17,7 @@ function App() {
       if (user) {
         try {
           const idToken = await user.getIdToken();
-          
           const { data } = await api.post("/users/set-token", { idToken });
-
           if (data.success) {
             dispatch(login(data.data));
           } else {

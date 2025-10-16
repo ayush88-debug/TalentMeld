@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import admin from "../firebase/config.js";
 
 const verifyFirebaseToken = asyncHandler(async (req, res, next) => {
+  console.log("--- Running the LATEST auth middleware (cookie version) ---");
   const token = req.cookies?.idToken;
 
   if (!token) {

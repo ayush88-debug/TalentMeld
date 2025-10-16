@@ -2,7 +2,6 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import api from '../axios/config'
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase";
 
 import { Viewer, Worker } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
@@ -23,7 +22,7 @@ const Workspace = () => {
     const file = acceptedFiles[0];
     if (file) {
       setError("");
-      setResumeFile(file); // Store the file object for the viewer
+      setResumeFile(file);
       setStatusText("Uploading and parsing resume...");
       setIsLoading(true);
 
@@ -31,16 +30,12 @@ const Workspace = () => {
       formData.append("resume", file);
 
       try {
-        const idToken = await auth.currentUser.getIdToken(true);
         const response = await api.post("/users/parse-resume", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${idToken}`,
-          },
+          headers: { "Content-Type": "multipart/form-data" },
         });
         setResumeText(response.data.data.text);
       } catch (err) {
-        setError("Failed to upload or parse the resume. Please try again.");
+        setError("Failed to upload or parse resume. Please try again.");
         setResumeFile(null);
         console.error(err);
       } finally {
@@ -64,14 +59,9 @@ const Workspace = () => {
     setIsLoading(true);
     setError("");
     try {
-      const idToken = await auth.currentUser.getIdToken(true);
       const response = await api.post("/users/analyze", {
         resumeText,
         jobDescription,
-      }, {
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
       });
 
       if (response.data.success) {

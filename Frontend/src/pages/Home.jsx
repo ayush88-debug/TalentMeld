@@ -20,7 +20,8 @@ const Home = () => {
         const user = result.user;
         const idToken = await user.getIdToken();
 
-        const { data } = await api.post("/users/set-token", { idToken });
+        // Call the backend to create or verify the user in your database
+        const { data } = await api.post("/users/login", { idToken });
 
         if (data.success) {
           dispatch(login(data.data));

@@ -4,7 +4,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { logout } from '../store/authSlice';
-import api from '../axios/config';
 
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -26,7 +25,6 @@ const Header = () => {
   const handleLogout = async () => {
       try {
         await signOut(auth);
-        await api.post("/users/clear-token");
         dispatch(logout());
         navigate('/');
       } catch (error) {

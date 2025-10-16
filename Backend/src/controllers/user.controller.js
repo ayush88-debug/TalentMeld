@@ -4,20 +4,26 @@ import { ApiError } from "../utils/ApiError.js";
 import admin from "../firebase/config.js";
 import { User } from "../models/user.model.js";
 import { AnalysisReport } from "../models/analysis.model.js"; 
-import {PDFParse } from "pdf-parse";
-import * as mammoth from "mammoth";
+import {PDFParse} from "pdf-parse";
+import mammoth from "mammoth";
 import fs from "fs";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatGroq } from "@langchain/groq";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { analysisParser } from "../langchain/parsers.js";
 import { analysisPromptTemplate } from "../langchain/prompts.js";
+import { OutputFixingParser } from "langchain/output_parsers";
 
-const setAuthToken = asyncHandler(async (req, res) => {
+// This function now only ensures the user exists in your database after they log in on the client.
+const loginOrRegisterUser = asyncHandler(async (req, res) => {
     const { idToken } = req.body;
-    if (!idToken) throw new ApiError(400, "ID token is required");
+    if (!idToken) {
+        throw new ApiError(400, "ID token is required");
+    }
 
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    if (!decodedToken) throw new ApiError(401, "Invalid Firebase token");
+    if (!decodedToken) {
+        throw new ApiError(401, "Invalid Firebase token");
+    }
 
     const { uid, email, name, picture } = decodedToken;
     let user = await User.findOne({ firebaseId: uid });
@@ -31,25 +37,10 @@ const setAuthToken = asyncHandler(async (req, res) => {
         });
     }
 
-    const options = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-    };
-
     return res
         .status(200)
-        .cookie("idToken", idToken, options)
-        .json(new ApiResponse(200, user, "User logged in and token set successfully"));
+        .json(new ApiResponse(200, user, "User verified successfully"));
 });
-
-const clearAuthToken = asyncHandler(async (req, res) => {
-    return res
-        .status(200)
-        .clearCookie("idToken")
-        .json(new ApiResponse(200, {}, "User logged out successfully"));
-});
-
-
 
 const parseResume = asyncHandler(async (req, res) => {
   const resumeLocalPath = req.file?.path;
@@ -70,8 +61,7 @@ const parseResume = asyncHandler(async (req, res) => {
       req.file.mimetype ===
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ) {
-      // Use the 'default' export from the imported namespace
-      const result = await mammoth.default.extractRawText({ path: resumeLocalPath });
+      const result = await mammoth.extractRawText({ path: resumeLocalPath });
       text = result.value;
     } else {
       throw new ApiError(
@@ -80,7 +70,6 @@ const parseResume = asyncHandler(async (req, res) => {
       );
     }
 
-    // Clean up the temporary file
     fs.unlinkSync(resumeLocalPath);
 
     return res
@@ -106,11 +95,12 @@ const analyzeContent = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Resume text and job description are required.");
   }
 
-  const llm = new ChatGoogleGenerativeAI({
-    apiKey: process.env.GEMINI_API_KEY,
-    modelName: "gemini-pro",
-    temperature: 0.3,
+  const llm = new ChatGroq({
+    apiKey: process.env.GROQ_API_KEY,
+    model: "openai/gpt-oss-120b", 
+    temperature: 0.2, 
   });
+  
   const prompt = new PromptTemplate({
     template: analysisPromptTemplate,
     inputVariables: ["resumeText", "jobDescription"],
@@ -129,8 +119,10 @@ const analyzeContent = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     console.error("LangChain analysis failed:", error);
-    throw new ApiError(500, "The AI failed to generate a valid analysis. This can happen during high traffic. Please try again in a moment.");
+    throw new ApiError(500, "The AI failed to generate a valid analysis. Please try again.");
   }
+
+  const professionalCoverLetter = analysisResult.generatedCoverLetter?.Professional || "Could not generate a professional cover letter.";
 
   const report = await AnalysisReport.create({
     userId,
@@ -139,7 +131,7 @@ const analyzeContent = asyncHandler(async (req, res) => {
     matchScore: analysisResult.matchScore,
     keywordAnalysis: analysisResult.keywordAnalysis,
     resumeSuggestions: analysisResult.resumeSuggestions,
-    generatedCoverLetter: analysisResult.generatedCoverLetter.Professional,
+    generatedCoverLetter: professionalCoverLetter,
   });
 
   if (!report) {
@@ -170,7 +162,7 @@ const getReportById = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Report not found.");
     }
 
-    if (report.userId.toString() !== userId) {
+    if (report.userId !== userId) {
         throw new ApiError(403, "You are not authorized to view this report.");
     }
 
@@ -196,4 +188,4 @@ const getUserReports = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, reports, "User reports fetched successfully."));
 });
 
-export { setAuthToken, clearAuthToken, parseResume, analyzeContent, getReportById, getUserReports };
+export { loginOrRegisterUser, parseResume, analyzeContent, getReportById, getUserReports };

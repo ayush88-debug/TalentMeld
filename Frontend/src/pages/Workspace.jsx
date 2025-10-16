@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import api from '../axios/config'
+import api from '../axios/config';
 import { useNavigate } from "react-router-dom";
+import { auth } from "../firebase";
 
 import { Viewer, Worker } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
@@ -30,12 +31,21 @@ const Workspace = () => {
       formData.append("resume", file);
 
       try {
+        const user = auth.currentUser;
+        if (!user) {
+          throw new Error("You must be logged in to upload a resume.");
+        }
+        const token = await user.getIdToken();
+
         const response = await api.post("/users/parse-resume", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: { 
+            "Content-Type": "multipart/form-data",
+            "Authorization": `Bearer ${token}`
+          },
         });
         setResumeText(response.data.data.text);
       } catch (err) {
-        setError("Failed to upload or parse resume. Please try again.");
+        setError(err.response?.data?.message || "Failed to upload or parse resume.");
         setResumeFile(null);
         console.error(err);
       } finally {
@@ -59,19 +69,29 @@ const Workspace = () => {
     setIsLoading(true);
     setError("");
     try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error("You must be logged in to analyze documents.");
+      }
+      const token = await user.getIdToken();
+
       const response = await api.post("/users/analyze", {
         resumeText,
         jobDescription,
+      }, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
       });
 
       if (response.data.success) {
         const reportId = response.data.data._id;
         navigate(`/report/${reportId}`);
       } else {
-        setError("Analysis failed. Please try again.");
+        setError(response.data.message || "Analysis failed. Please try again.");
       }
     } catch (err) {
-      setError("An error occurred during analysis.");
+      setError(err.response?.data?.message || "An error occurred during analysis.");
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -139,4 +159,3 @@ const Workspace = () => {
 };
 
 export default Workspace;
-

@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import { login, logout } from './store/authSlice';
-import api from './axios/config'; // Make sure you have this file
+import api from './axios/config';
 import Header from './components/Header'; 
 import Footer from './components/Footer';
 
@@ -17,10 +17,13 @@ function App() {
       if (user) {
         try {
           const idToken = await user.getIdToken();
-          const { data } = await api.post("/users/set-token", { idToken });
+          
+          const { data } = await api.post("/users/login", { idToken });
+          
           if (data.success) {
             dispatch(login(data.data));
           } else {
+            // If backend verification fails, log the user out of the client.
             dispatch(logout());
           }
         } catch (error) {
@@ -32,6 +35,8 @@ function App() {
       }
       setLoading(false);
     });
+    
+    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, [dispatch]);
 

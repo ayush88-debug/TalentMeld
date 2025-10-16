@@ -9,6 +9,7 @@ import { store } from './store/store.js';
 import Home from './Pages/Home.jsx';
 import Workspace from './Pages/Workspace.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import Report from './Pages/Report.jsx';
 
 const router = createBrowserRouter([
   {
@@ -26,6 +27,10 @@ const router = createBrowserRouter([
           {
             path: "workspace",
             element: <Workspace />,
+          },
+          {
+            path: "report/:reportId",
+            element: <Report />,
           }
         ]
       }

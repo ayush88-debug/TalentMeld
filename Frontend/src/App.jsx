@@ -43,7 +43,7 @@ function App() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p>Loading...</p>
+        <p>Warming up the server... this may take up to a minute. Thanks for your patience!</p>
       </div>
     );
   }

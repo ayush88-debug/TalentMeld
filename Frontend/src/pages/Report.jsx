@@ -168,7 +168,7 @@ const Report = () => {
                 <Accordion type="single" collapsible className="w-full mt-4" defaultValue="item-0">
                   {report.resumeSuggestions.map((sectionItem, index) => (
                     <AccordionItem value={`item-${index}`} key={index} className="border-b dark:border-gray-700">
-                      <AccordionTrigger className="text-lg font-medium hover:no-underline text-gray-800 dark:text-gray-200 py-4">
+                      <AccordionTrigger className="text-lg font-medium hover:no-underline text-gray-800 dark:text-gray-200 py-4 cursor-pointer">
                         {sectionItem.section}
                       </AccordionTrigger>
                       <AccordionContent>

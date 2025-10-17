@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import api from '../axios/config';
 import { auth } from "../firebase";
 import { Copy, Check, Info, WandSparkles } from "lucide-react";
-//  eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line no-unused-vars
 import { motion, useAnimation } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -19,11 +19,15 @@ const Report = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
+  // Cover Letter state
   const [coverLetter, setCoverLetter] = useState("");
   const [selectedTone, setSelectedTone] = useState("Professional");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const [isCopied, setIsCopied] = useState(false);
+  // State for copy buttons
+  const [isCoverLetterCopied, setIsCoverLetterCopied] = useState(false);
+  const [copiedSuggestionId, setCopiedSuggestionId] = useState(null);
+
   const [progressValue, setProgressValue] = useState(0);
   const controls = useAnimation();
 
@@ -75,10 +79,16 @@ const Report = () => {
     return "bg-red-500";
   };
   
-  const handleCopy = () => {
+  const handleCoverLetterCopy = () => {
     navigator.clipboard.writeText(coverLetter);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
+    setIsCoverLetterCopied(true);
+    setTimeout(() => setIsCoverLetterCopied(false), 2000);
+  };
+
+  const handleSuggestionCopy = (text, id) => {
+    navigator.clipboard.writeText(text);
+    setCopiedSuggestionId(id);
+    setTimeout(() => setCopiedSuggestionId(null), 2000);
   };
 
   const handleGenerateNewTone = async () => {
@@ -162,31 +172,43 @@ const Report = () => {
                         {sectionItem.section}
                       </AccordionTrigger>
                       <AccordionContent>
-                        {sectionItem.suggestions.map((item, subIndex) => (
-                           <motion.div
-                              key={subIndex}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.4, delay: subIndex * 0.1 }}
-                           >
-                            <div className="p-4 mb-4 border-l-4 border-indigo-500 bg-gray-100 dark:bg-gray-800 rounded-r-md">
-                              <div className="flex items-start">
-                                <Info className="h-5 w-5 text-indigo-500 mr-3 mt-1 flex-shrink-0" />
-                                <p className="text-base text-black dark:text-gray-300">{item.insight}</p>
-                              </div>
-                              <div className="mt-4 space-y-3">
-                                <div className="p-3 bg-white dark:bg-gray-700 rounded-md border-l-4 border-red-400">
-                                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Original Text:</p>
-                                  <p className="text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-wrap">{item.original}</p>
+                        {sectionItem.suggestions.map((item, subIndex) => {
+                           const suggestionId = `${index}-${subIndex}`;
+                           return (
+                             <motion.div
+                                key={suggestionId}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4, delay: subIndex * 0.1 }}
+                             >
+                              <div className="p-4 mb-4 border-l-4 border-indigo-500 bg-gray-100 dark:bg-gray-800 rounded-r-md">
+                                <div className="flex items-start">
+                                  <Info className="h-5 w-5 text-indigo-500 mr-3 mt-1 flex-shrink-0" />
+                                  <p className="text-base text-black dark:text-gray-300">{item.insight}</p>
                                 </div>
-                                <div className="p-3 bg-white dark:bg-gray-700 rounded-md border-l-4 border-green-500">
-                                  <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">AI Suggestion:</p>
-                                  <p className="text-gray-800 dark:text-white mt-1 whitespace-pre-wrap">{item.suggestion}</p>
+                                <div className="mt-4 space-y-3">
+                                  <div className="p-3 bg-white dark:bg-gray-700 rounded-md border-l-4 border-red-400">
+                                    <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Original Text:</p>
+                                    <p className="text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-wrap">{item.original}</p>
+                                  </div>
+                                  <div className="p-3 bg-white dark:bg-gray-700 rounded-md border-l-4 border-green-500">
+                                    <div className="flex justify-between items-center mb-1">
+                                      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">AI Suggestion:</p>
+                                      <Button variant="ghost" size="icon-sm" onClick={() => handleSuggestionCopy(item.suggestion, suggestionId)}>
+                                        {copiedSuggestionId === suggestionId ? (
+                                          <Check className="h-4 w-4 text-green-500" />
+                                        ) : (
+                                          <Copy className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    </div>
+                                    <p className="text-gray-800 dark:text-white mt-1 whitespace-pre-wrap">{item.suggestion}</p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </motion.div>
-                        ))}
+                            </motion.div>
+                           )
+                        })}
                       </AccordionContent>
                     </AccordionItem>
                   ))}
@@ -205,7 +227,7 @@ const Report = () => {
                               <CardDescription>Tailored for the role based on your resume.</CardDescription>
                           </div>
                           <div className="flex items-center gap-2 w-full sm:w-auto">
-                              <Select  onValueChange={setSelectedTone} defaultValue="Professional">
+                              <Select onValueChange={setSelectedTone} defaultValue="Professional">
                                 <SelectTrigger className="w-full sm:w-[150px] cursor-pointer">
                                     <SelectValue placeholder="Select a tone" />
                                 </SelectTrigger>
@@ -219,8 +241,8 @@ const Report = () => {
                                 <WandSparkles className="h-4 w-4 mr-2" />
                                 {isGenerating ? "Generating..." : "Generate"}
                               </Button>
-                              <Button className={'cursor-pointer'} variant="outline" size="icon" onClick={handleCopy}>
-                                {isCopied ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
+                              <Button className={'cursor-pointer'} variant="outline" size="icon" onClick={handleCoverLetterCopy}>
+                                {isCoverLetterCopied ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
                               </Button>
                           </div>
                         </div>

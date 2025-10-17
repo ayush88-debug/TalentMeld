@@ -193,7 +193,7 @@ const Report = () => {
                                   </div>
                                   <div className="p-3 bg-white dark:bg-gray-700 rounded-md border-l-4 border-green-500">
                                     <div className="flex justify-between items-center mb-1">
-                                      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">AI Suggestion:</p>
+                                      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Suggestion:</p>
                                       <Button variant="ghost" size="icon-sm" onClick={() => handleSuggestionCopy(item.suggestion, suggestionId)}>
                                         {copiedSuggestionId === suggestionId ? (
                                           <Check className="h-4 w-4 text-green-500" />
@@ -223,7 +223,7 @@ const Report = () => {
                     <CardHeader>
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                           <div>
-                              <CardTitle className="text-2xl font-semibold">AI Generated Cover Letter</CardTitle>
+                              <CardTitle className="text-2xl font-semibold">Cover Letter</CardTitle>
                               <CardDescription>Tailored for the role based on your resume.</CardDescription>
                           </div>
                           <div className="flex items-center gap-2 w-full sm:w-auto">

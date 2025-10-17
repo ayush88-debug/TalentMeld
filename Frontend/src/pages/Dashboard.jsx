@@ -95,7 +95,7 @@ const Dashboard = () => {
                     <span>
                       {new Date(report.createdAt).toLocaleDateString()}
                     </span>
-                    <Button variant="link" className="p-0 h-auto">View Report</Button>
+                    <Button variant="link" className="p-0 h-auto cursor-pointer">View Report</Button>
                   </div>
                 </CardContent>
               </Card>

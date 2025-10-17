@@ -65,7 +65,7 @@ const Workspace = () => {
   });
 
   const handleAnalyze = async () => {
-    setStatusText("Analyzing your documents...");
+    setStatusText("Analyzing your Resume...");
     setIsLoading(true);
     setError("");
     try {
@@ -148,7 +148,7 @@ const Workspace = () => {
         <Button
           onClick={handleAnalyze}
           disabled={!resumeText || !jobDescription || isLoading}
-          className="mt-4 w-full"
+          className="mt-4 w-full cursor-pointer"
           size="lg"
         >
           {isLoading ? statusText : "Analyze"}

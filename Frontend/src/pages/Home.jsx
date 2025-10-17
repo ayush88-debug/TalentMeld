@@ -60,11 +60,11 @@ const Home = () => {
         transition={{ duration: 0.5, delay: 0.4 }}
       >
         {authStatus ? (
-          <Button onClick={() => navigate('/workspace')} size="lg">
+          <Button onClick={() => navigate('/workspace')} size="lg" className={'cursor-pointer'}>
             Go to Workspace
           </Button>
         ) : (
-          <Button onClick={handleGoogleLogin} size="lg">
+          <Button onClick={handleGoogleLogin} size="lg" className={'cursor-pointer'}>
             Login with Google to Get Started
           </Button>
         )}

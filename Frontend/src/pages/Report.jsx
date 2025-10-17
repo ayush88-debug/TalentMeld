@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import api from '../axios/config'
+import api from '../axios/config';
 import { auth } from "../firebase";
-import { Copy, Check, Info } from "lucide-react";
-// eslint-disable-next-line no-unused-vars
+import { Copy, Check, Info, WandSparkles } from "lucide-react";
+//  eslint-disable-next-line no-unused-vars
 import { motion, useAnimation } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,11 @@ const Report = () => {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
   const [coverLetter, setCoverLetter] = useState("");
+  const [selectedTone, setSelectedTone] = useState("Professional");
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const [isCopied, setIsCopied] = useState(false);
   const [progressValue, setProgressValue] = useState(0);
   const controls = useAnimation();
@@ -77,8 +81,35 @@ const Report = () => {
     setTimeout(() => setIsCopied(false), 2000);
   };
 
-  const handleToneChange = (tone) => {
-    setCoverLetter(`Generating a new cover letter with a ${tone} tone...`);
+  const handleGenerateNewTone = async () => {
+    if (!selectedTone || isGenerating) return;
+
+    setIsGenerating(true);
+    setError("");
+    setCoverLetter(`Generating a new cover letter with a ${selectedTone} tone...`);
+
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const response = await api.post('/users/regenerate-cover-letter', {
+        reportId: reportId,
+        tone: selectedTone,
+      }, {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+
+      if (response.data.success) {
+        setCoverLetter(response.data.data.coverLetter);
+      } else {
+        setError("Failed to generate new cover letter.");
+        setCoverLetter(report.generatedCoverLetter);
+      }
+    } catch (err) {
+      setError("An error occurred during generation.");
+      setCoverLetter(report.generatedCoverLetter);
+      console.error(err);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   if (loading) return <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-black">Loading Report...</div>;
@@ -99,12 +130,13 @@ const Report = () => {
 
         <Tabs defaultValue="resume-analysis" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-gray-200 dark:bg-gray-800 rounded-lg p-1">
-            <TabsTrigger value="resume-analysis" className="data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:shadow-sm">Resume Analysis</TabsTrigger>
-            <TabsTrigger value="cover-letter" className="data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:shadow-sm">Cover Letter</TabsTrigger>
+            <TabsTrigger value="resume-analysis" className="data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:shadow-sm cursor-pointer">Resume Analysis</TabsTrigger>
+            <TabsTrigger value="cover-letter" className="data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:shadow-sm cursor-pointer">Cover Letter</TabsTrigger>
           </TabsList>
 
           <TabsContent value="resume-analysis" className="mt-6">
             <div className="grid gap-8">
+              {/* ATS Score Card */}
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
                 <Card className="bg-white dark:bg-gray-900 shadow-lg">
                   <CardHeader>
@@ -120,6 +152,7 @@ const Report = () => {
                 </Card>
               </motion.div>
 
+              {/* Actionable Improvements */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.4 }}>
                 <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">Actionable Improvements</h3>
                 <Accordion type="single" collapsible className="w-full mt-4" defaultValue="item-0">
@@ -144,11 +177,11 @@ const Report = () => {
                               <div className="mt-4 space-y-3">
                                 <div className="p-3 bg-white dark:bg-gray-700 rounded-md border-l-4 border-red-400">
                                   <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Original Text:</p>
-                                  <p className="text-gray-600 dark:text-gray-300 mt-1">{item.original}</p>
+                                  <p className="text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-wrap">{item.original}</p>
                                 </div>
                                 <div className="p-3 bg-white dark:bg-gray-700 rounded-md border-l-4 border-green-500">
                                   <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">AI Suggestion:</p>
-                                  <p className="text-gray-800 dark:text-white mt-1">{item.suggestion}</p>
+                                  <p className="text-gray-800 dark:text-white mt-1 whitespace-pre-wrap">{item.suggestion}</p>
                                 </div>
                               </div>
                             </div>
@@ -167,30 +200,34 @@ const Report = () => {
                 <Card className="bg-white dark:bg-gray-900 shadow-lg">
                     <CardHeader>
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <CardTitle className="text-2xl font-semibold">AI Generated Cover Letter</CardTitle>
-                            <CardDescription>Tailored for the role based on your resume.</CardDescription>
-                        </div>
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <Select onValueChange={handleToneChange} defaultValue="Professional">
-                            <SelectTrigger className="w-full sm:w-[180px]">
-                                <SelectValue placeholder="Select a tone" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Professional">Professional</SelectItem>
-                                <SelectItem value="Enthusiastic">Enthusiastic</SelectItem>
-                                <SelectItem value="Concise">Concise</SelectItem>
-                            </SelectContent>
-                            </Select>
-                            <Button variant="outline" size="icon" onClick={handleCopy}>
-                            {isCopied ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
-                            </Button>
-                        </div>
+                          <div>
+                              <CardTitle className="text-2xl font-semibold">AI Generated Cover Letter</CardTitle>
+                              <CardDescription>Tailored for the role based on your resume.</CardDescription>
+                          </div>
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                              <Select  onValueChange={setSelectedTone} defaultValue="Professional">
+                                <SelectTrigger className="w-full sm:w-[150px] cursor-pointer">
+                                    <SelectValue placeholder="Select a tone" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Professional">Professional</SelectItem>
+                                    <SelectItem value="Enthusiastic">Enthusiastic</SelectItem>
+                                    <SelectItem value="Concise">Concise</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button className={'cursor-pointer'} onClick={handleGenerateNewTone} disabled={isGenerating}>
+                                <WandSparkles className="h-4 w-4 mr-2" />
+                                {isGenerating ? "Generating..." : "Generate"}
+                              </Button>
+                              <Button className={'cursor-pointer'} variant="outline" size="icon" onClick={handleCopy}>
+                                {isCopied ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
+                              </Button>
+                          </div>
                         </div>
                     </CardHeader>
                     <CardContent>
                         <div className="p-6 border dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 min-h-[400px] prose dark:prose-invert max-w-none">
-                        <p className="whitespace-pre-wrap">{coverLetter}</p>
+                          <p className="whitespace-pre-wrap">{coverLetter}</p>
                         </div>
                     </CardContent>
                 </Card>

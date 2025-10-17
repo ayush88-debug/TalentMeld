@@ -22,12 +22,23 @@ const analysisReportSchema = new mongoose.Schema(
     keywordAnalysis: {
       type: mongoose.Schema.Types.Mixed,
     },
+    languageAnalysis: {
+      type: mongoose.Schema.Types.Mixed,
+    },
     resumeSuggestions: {
       type: mongoose.Schema.Types.Mixed,
     },
     generatedCoverLetter: {
       type: String,
     },
+    originalResume: {
+      type: String,
+      required: true,
+    },
+    originalJobDescription: {
+      type: String,
+      required: true,
+    }
   },
   { timestamps: true }
 );

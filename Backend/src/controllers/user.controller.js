@@ -11,9 +11,8 @@ import { ChatGroq } from "@langchain/groq";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { analysisParser } from "../langchain/parsers.js";
 import { analysisPromptTemplate } from "../langchain/prompts.js";
-import { OutputFixingParser } from "langchain/output_parsers";
+import { StringOutputParser } from "@langchain/core/output_parsers";
 
-// This function now only ensures the user exists in your database after they log in on the client.
 const loginOrRegisterUser = asyncHandler(async (req, res) => {
     const { idToken } = req.body;
     if (!idToken) {
@@ -88,64 +87,109 @@ const parseResume = asyncHandler(async (req, res) => {
 });
 
 const analyzeContent = asyncHandler(async (req, res) => {
-  const { resumeText, jobDescription } = req.body;
-  const userId = req.user.uid;
+    const { resumeText, jobDescription } = req.body;
+    const userId = req.user.uid;
+    if (!resumeText || !jobDescription) {
+        throw new ApiError(400, "Resume and job description are required.");
+    }
 
-  if (!resumeText || !jobDescription) {
-    throw new ApiError(400, "Resume text and job description are required.");
-  }
-
-  const llm = new ChatGroq({
-    apiKey: process.env.GROQ_API_KEY,
-    model: "openai/gpt-oss-120b", 
-    temperature: 0.2, 
-  });
-  
-  const prompt = new PromptTemplate({
-    template: analysisPromptTemplate,
-    inputVariables: ["resumeText", "jobDescription"],
-    partialVariables: {
-      format_instructions: analysisParser.getFormatInstructions(),
-    },
-  });
-
-  const chain = prompt.pipe(llm).pipe(analysisParser);
-
-  let analysisResult;
-  try {
-    analysisResult = await chain.invoke({
-      resumeText: resumeText,
-      jobDescription: jobDescription,
+    const llm = new ChatGroq({ apiKey: process.env.GROQ_API_KEY, model: "openai/gpt-oss-120b", temperature: 0.2 });
+    
+    const prompt = new PromptTemplate({
+        template: analysisPromptTemplate,
+        inputVariables: ["resumeText", "jobDescription"],
+        partialVariables: { format_instructions: analysisParser.getFormatInstructions() },
     });
-  } catch (error) {
-    console.error("LangChain analysis failed:", error);
-    throw new ApiError(500, "The AI failed to generate a valid analysis. Please try again.");
-  }
+    
+    const chain = prompt.pipe(llm).pipe(analysisParser);
 
-  const professionalCoverLetter = analysisResult.generatedCoverLetter?.Professional || "Could not generate a professional cover letter.";
+    let analysisResult;
+    try {
+        analysisResult = await chain.invoke({ resumeText, jobDescription });
+    } catch (error) {
+        console.error("LangChain analysis failed:", error);
+        throw new ApiError(500, "The AI failed to generate a valid analysis. Please try again.");
+    }
 
-  const report = await AnalysisReport.create({
-    userId,
-    jobTitle: analysisResult.jobTitle,
-    companyName: analysisResult.companyName,
-    matchScore: analysisResult.matchScore,
-    keywordAnalysis: analysisResult.keywordAnalysis,
-    resumeSuggestions: analysisResult.resumeSuggestions,
-    generatedCoverLetter: professionalCoverLetter,
-  });
+    const report = await AnalysisReport.create({
+        userId,
+        jobTitle: analysisResult.jobTitle,
+        companyName: analysisResult.companyName,
+        matchScore: analysisResult.matchScore,
+        keywordAnalysis: analysisResult.keywordAnalysis,
+        languageAnalysis: analysisResult.languageAnalysis,
+        resumeSuggestions: analysisResult.resumeSuggestions,
+        generatedCoverLetter: analysisResult.generatedCoverLetter, 
+        originalResume: resumeText,
+        originalJobDescription: jobDescription,
+    });
 
-  if (!report) {
-    throw new ApiError(500, "Failed to save the analysis report.");
-  }
+    if (!report) {
+        throw new ApiError(500, "Failed to save the analysis report.");
+    }
 
-  const responseData = {
-    ...report.toObject(),
-    generatedCoverLetter: analysisResult.generatedCoverLetter,
-  };
+    return res.status(200).json(new ApiResponse(200, report, "Analysis completed successfully."));
+});
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, responseData, "Analysis completed successfully."));
+const regenerateCoverLetter = asyncHandler(async (req, res) => {
+    const { reportId, tone } = req.body;
+    const userId = req.user.uid;
+    if (!reportId || !tone) {
+        throw new ApiError(400, "Report ID and tone are required.");
+    }
+
+    const report = await AnalysisReport.findById(reportId);
+    if (!report || report.userId !== userId) {
+        throw new ApiError(404, "Report not found or unauthorized.");
+    }
+
+    const { originalResume, originalJobDescription } = report;
+    if (!originalResume || !originalJobDescription) {
+        throw new ApiError(400, "Original resume or job description not found for this report.");
+    }
+
+    const llm = new ChatGroq({ apiKey: process.env.GROQ_API_KEY, model: "openai/gpt-oss-120b", temperature: 0.7 });
+
+    const coverLetterPromptTemplate = `
+      You are an expert career coach writing a cover letter. Your task is to generate a cover letter based on the provided resume and job description with a specific tone.
+
+      **CRITICAL INSTRUCTIONS:**
+      1.  **Be Concise:** The entire cover letter must be between 3 and 4 paragraphs, But for Concise tone it should be at max 2 small paragraphs.
+      2.  **Create a Narrative:** Do NOT simply list projects or skills from the resume. Instead, weave 1-2 key achievements into a compelling story that shows why the candidate is a great fit for the role.
+      3.  **Match the Tone:** The writing style must reflect the requested **{tone}** tone.
+      4.  **No Headers or Contact Info:** The output must be ONLY the body of the cover letter (e.g., starting with "Dear Hiring Team..."). Do not include the user's name, address, or any other header information.
+
+      **Resume:**
+      ---
+      {resumeText}
+      ---
+      
+      **Job Description:**
+      ---
+      {jobDescription}
+      ---
+    `;
+
+    const prompt = new PromptTemplate({
+        template: coverLetterPromptTemplate,
+        inputVariables: ["resumeText", "jobDescription", "tone"],
+    });
+
+    const chain = prompt.pipe(llm).pipe(new StringOutputParser());
+
+    let newCoverLetter;
+    try {
+        newCoverLetter = await chain.invoke({
+            resumeText: originalResume,
+            jobDescription: originalJobDescription,
+            tone: tone,
+        });
+    } catch (error) {
+        console.error("Cover letter regeneration failed:", error);
+        throw new ApiError(500, "Failed to generate new cover letter.");
+    }
+
+    return res.status(200).json(new ApiResponse(200, { coverLetter: newCoverLetter }, "Cover letter regenerated successfully."));
 });
 
 const getReportById = asyncHandler(async (req, res) => {
@@ -188,4 +232,4 @@ const getUserReports = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, reports, "User reports fetched successfully."));
 });
 
-export { loginOrRegisterUser, parseResume, analyzeContent, getReportById, getUserReports };
+export { loginOrRegisterUser, parseResume, analyzeContent, regenerateCoverLetter, getReportById, getUserReports };

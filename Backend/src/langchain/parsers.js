@@ -32,11 +32,6 @@ export const analysisParser = StructuredOutputParser.fromZodSchema(
     }).describe("Analysis of the resume's language, grammar, and professional tone."),
 
     resumeSuggestions: z.array(sectionSchema).describe("An array of suggestion objects, grouped by resume section. Focus on improving the existing content."),
-    
-    generatedCoverLetter: z.object({
-        Professional: z.string().describe("A tailored cover letter with a professional and formal tone."),
-        Enthusiastic: z.string().describe("A tailored cover letter with an energetic and enthusiastic tone."),
-        Concise: z.string().describe("A brief and to-the-point tailored cover letter."),
-    }).describe("Three versions of a tailored cover letter based on the resume and job description.")
+    generatedCoverLetter: z.string().describe("A tailored cover letter with a professional and formal tone. It should be ready to copy and paste."),
   })
 );

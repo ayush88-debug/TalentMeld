@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from '../axios/config';
 import { auth } from "../firebase";
-import { Copy, Check, Info, WandSparkles } from "lucide-react";
-// eslint-disable-next-line no-unused-vars
+import { Copy, Check, Info, WandSparkles, PenLine, CheckCircle2, AlertTriangle } from "lucide-react";
+//  eslint-disable-next-line no-unused-vars
 import { motion, useAnimation } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -19,12 +19,10 @@ const Report = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
-  // Cover Letter state
   const [coverLetter, setCoverLetter] = useState("");
   const [selectedTone, setSelectedTone] = useState("Professional");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // State for copy buttons
   const [isCoverLetterCopied, setIsCoverLetterCopied] = useState(false);
   const [copiedSuggestionId, setCopiedSuggestionId] = useState(null);
 
@@ -147,7 +145,7 @@ const Report = () => {
           <TabsContent value="resume-analysis" className="mt-6">
             <div className="grid gap-8">
               {/* ATS Score Card */}
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.1 }}>
                 <Card className="bg-white dark:bg-gray-900 shadow-lg">
                   <CardHeader>
                     <CardTitle className="text-2xl font-semibold">ATS Match Score</CardTitle>
@@ -161,6 +159,85 @@ const Report = () => {
                   </CardContent>
                 </Card>
               </motion.div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Language Analysis Card */}
+                {report.languageAnalysis && (
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
+                    <Card className="bg-white dark:bg-gray-900 shadow-lg h-full">
+                      <CardHeader>
+                        <CardTitle className="flex items-center text-2xl font-semibold">
+                          <PenLine className="h-6 w-6 mr-2" />
+                          Language & Tone
+                        </CardTitle>
+                        <CardDescription>{report.languageAnalysis.overallFeedback}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm text-muted-foreground">Grammar Score</span>
+                          <span className={`font-bold text-lg ${getScoreTextColor(report.languageAnalysis.score)}`}>{report.languageAnalysis.score}/100</span>
+                        </div>
+                        <Progress value={report.languageAnalysis.score} className="h-2" colorClassName={getScoreBgColor(report.languageAnalysis.score)} />
+                        <h4 className="font-semibold mt-4 mb-2">Improvements:</h4>
+                        <ul className="list-none space-y-2">
+                          {report.languageAnalysis.improvements.map((item, i) => (
+                            <li key={i} className="flex items-start text-sm">
+                              <Info className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-blue-500" />
+                              <span className="text-muted-foreground">{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+
+                {/* Keyword Analysis Card */}
+                {report.keywordAnalysis && (
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
+                    <Card className="bg-white dark:bg-gray-900 shadow-lg h-full">
+                      <CardHeader>
+                        <CardTitle className="text-2xl font-semibold">Keyword Analysis</CardTitle>
+                        <CardDescription>Keywords from the job description found in your resume.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          <div>
+                            <h4 className="flex items-center font-semibold mb-3 text-green-600 dark:text-green-400">
+                              <CheckCircle2 className="h-5 w-5 mr-2" />
+                              Found Keywords
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {report.keywordAnalysis.found.length > 0 ? (
+                                report.keywordAnalysis.found.map((keyword) => (
+                                  <div key={keyword} className="text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2.5 py-1 rounded-full">
+                                    {keyword}
+                                  </div>
+                                ))
+                              ) : <p className="text-sm text-muted-foreground">None found.</p>}
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="flex items-center font-semibold mb-3 text-yellow-600 dark:text-yellow-400">
+                              <AlertTriangle className="h-5 w-5 mr-2" />
+                              Missing Keywords
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {report.keywordAnalysis.missing.length > 0 ? (
+                                report.keywordAnalysis.missing.map((keyword) => (
+                                  <div key={keyword} className="text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2.5 py-1 rounded-full">
+                                    {keyword}
+                                  </div>
+                                ))
+                              ) : <p className="text-sm text-muted-foreground">None missing!</p>}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </div>
 
               {/* Actionable Improvements */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.4 }}>
@@ -191,10 +268,10 @@ const Report = () => {
                                     <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Original Text:</p>
                                     <p className="text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-wrap">{item.original}</p>
                                   </div>
-                                  <div className="p-3 bg-white dark:bg-gray-700 rounded-md border-l-4 border-green-500">
+                                  <div className="p-3 bg-white dark:bg-gray-700 rounded-md border-l-4 border-green-500 relative">
                                     <div className="flex justify-between items-center mb-1">
                                       <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Suggestion:</p>
-                                      <Button variant="ghost" size="icon-sm" onClick={() => handleSuggestionCopy(item.suggestion, suggestionId)}>
+                                      <Button variant="ghost" size="icon-sm" className="absolute top-1 right-1 h-7 w-7" onClick={() => handleSuggestionCopy(item.suggestion, suggestionId)}>
                                         {copiedSuggestionId === suggestionId ? (
                                           <Check className="h-4 w-4 text-green-500" />
                                         ) : (
@@ -202,7 +279,7 @@ const Report = () => {
                                         )}
                                       </Button>
                                     </div>
-                                    <p className="text-gray-800 dark:text-white mt-1 whitespace-pre-wrap">{item.suggestion}</p>
+                                    <p className="text-gray-800 dark:text-white mt-1 pr-8 whitespace-pre-wrap">{item.suggestion}</p>
                                   </div>
                                 </div>
                               </div>

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from '../axios/config';
 import { auth } from "../firebase";
-import { Copy, Check, Info, WandSparkles, PenLine, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Copy, Check, Info, WandSparkles, PenLine, CheckCircle2, AlertTriangle, Target, KeyRound, Lightbulb, FileText } from "lucide-react";
 //  eslint-disable-next-line no-unused-vars
 import { motion, useAnimation } from "framer-motion";
 
@@ -148,7 +148,10 @@ const Report = () => {
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.1 }}>
                 <Card className="bg-white dark:bg-gray-900 shadow-lg">
                   <CardHeader>
-                    <CardTitle className="text-2xl font-semibold">ATS Match Score</CardTitle>
+                    <CardTitle className="flex items-center text-2xl font-semibold">
+                      <Target className="h-6 w-6 mr-2" />
+                      ATS Match Score
+                    </CardTitle>
                     <CardDescription>How your resume stacks up against the job description.</CardDescription>
                   </CardHeader>
                   <CardContent className="flex flex-col items-center justify-center p-6">
@@ -197,7 +200,10 @@ const Report = () => {
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
                     <Card className="bg-white dark:bg-gray-900 shadow-lg h-full">
                       <CardHeader>
-                        <CardTitle className="text-2xl font-semibold">Keyword Analysis</CardTitle>
+                        <CardTitle className="flex items-center text-2xl font-semibold">
+                          <KeyRound className="h-6 w-6 mr-2" />
+                          Keyword Analysis
+                        </CardTitle>
                         <CardDescription>Keywords from the job description found in your resume.</CardDescription>
                       </CardHeader>
                       <CardContent>
@@ -241,7 +247,10 @@ const Report = () => {
 
               {/* Actionable Improvements */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.4 }}>
-                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">Actionable Improvements</h3>
+                <h3 className="flex items-center text-2xl font-semibold text-gray-900 dark:text-white">
+                  <Lightbulb className="h-6 w-6 mr-2" />
+                  Actionable Improvements
+                </h3>
                 <Accordion type="single" collapsible className="w-full mt-4" defaultValue="item-0">
                   {report.resumeSuggestions.map((sectionItem, index) => (
                     <AccordionItem value={`item-${index}`} key={index} className="border-b dark:border-gray-700">
@@ -300,7 +309,10 @@ const Report = () => {
                     <CardHeader>
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                           <div>
-                              <CardTitle className="text-2xl font-semibold">Cover Letter</CardTitle>
+                              <CardTitle className="flex items-center text-2xl font-semibold">
+                                <FileText className="h-6 w-6 mr-2" />
+                                Cover Letter
+                              </CardTitle>
                               <CardDescription>Tailored for the role based on your resume.</CardDescription>
                           </div>
                           <div className="flex items-center gap-2 w-full sm:w-auto">

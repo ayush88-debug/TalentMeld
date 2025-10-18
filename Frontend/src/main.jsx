@@ -6,11 +6,11 @@ import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store/store.js';
 
-import Home from './Pages/Home.jsx';
-import Workspace from './Pages/Workspace.jsx';
+import Home from './pages/Home.jsx';
+import Workspace from './pages/Workspace.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
-import Report from './Pages/Report.jsx';
-import Dashboard from './Pages/Dashboard.jsx';
+import Report from './pages/Report.jsx';
+import Dashboard from './pages/Dashboard.jsx';
 
 const router = createBrowserRouter([
   {

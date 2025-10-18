@@ -1,7 +1,7 @@
 {
   "name": "talentmeld-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "TalentMeld is an AI-powered application that analyzes your resume against a job description to provide an ATS match score, actionable feedback, and an instantly generated, tailored cover letter.",
   "license": "ISC",
   "author": "Ayush Ghavghave",
   "type": "module",

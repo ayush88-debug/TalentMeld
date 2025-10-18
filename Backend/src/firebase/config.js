@@ -1,4 +1,7 @@
 import admin from "firebase-admin";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 // Parse the service account key from the environment variable
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);

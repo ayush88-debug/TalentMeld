@@ -12,6 +12,9 @@ import { PromptTemplate } from "@langchain/core/prompts";
 import { analysisParser } from "../langchain/parsers.js";
 import { analysisPromptTemplate } from "../langchain/prompts.js";
 import { StringOutputParser } from "@langchain/core/output_parsers";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const loginOrRegisterUser = asyncHandler(async (req, res) => {
     const { idToken } = req.body;

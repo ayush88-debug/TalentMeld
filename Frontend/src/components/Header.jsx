@@ -37,13 +37,6 @@ const Header = () => {
     <nav className="flex items-center gap-4">
       {authStatus && (
         <div className="flex items-center gap-16">
-          <Button
-            onClick={() => navigate('/workspace')}
-            size="lg"
-            className="cursor-pointer"
-          >
-            Workspace
-          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild className="cursor-pointer">
@@ -69,6 +62,13 @@ const Header = () => {
 
               <DropdownMenuSeparator />
 
+              <DropdownMenuItem
+                className="cursor-pointer py-2 px-3"
+                onClick={() => navigate('/workspace')}
+              >
+                Workspace
+              </DropdownMenuItem>
+              
               <DropdownMenuItem
                 className="cursor-pointer py-2 px-3"
                 onClick={() => navigate('/dashboard')}

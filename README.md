@@ -24,6 +24,10 @@ By leveraging the power of large language models via LangChain and the Groq API,
 
 The core feature is its actionable feedback engine, which provides section-by-section suggestions to reframe and quantify existing experience, ensuring your achievements are highlighted effectively. The platform also includes an on-demand **AI Cover Letter Generator** that creates concise, professional, and tone-specific letters, helping you craft the perfect application every time.
 
+<div align="center">
+  <img src="Frontend\public\Steps.png" alt="TalentMeld Application Demo" width="800"/>
+</div>
+
 ---
 
 ## ## Key Features
